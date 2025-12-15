@@ -125,11 +125,9 @@ public class MainApp extends Application {
             }
         });
 
-        // 核心逻辑修改：处理 Check-In 的返回值
         checkInButton.setOnAction(e -> {
             Habit selected = listView.getSelectionModel().getSelectedItem();
             if (selected != null) {
-                // 传入 Habit 对象，获取状态码
                 int result = habitDao.checkIn(selected, LocalDate.now().toString());
                 handleCheckInResult(result, selected.getName());
             } else {
@@ -141,31 +139,25 @@ public class MainApp extends Application {
         return root;
     }
 
-    // 统一处理打卡结果（弹窗 + 后台打印）
     private void handleCheckInResult(int result, String habitName) {
         if (result == 0) {
-            // 成功
             System.out.println("Check-in SUCCESS for: " + habitName);
             showAlert(Alert.AlertType.INFORMATION, "Success", "Good job! Check-in recorded.");
             loadData();
         }
         else if (result == 1) {
-            // Daily 重复
             System.out.println("Check-in FAILED: Already done today -> " + habitName);
             showAlert(Alert.AlertType.WARNING, "Already Checked In", "You have already completed '" + habitName + "' today!");
         }
         else if (result == 2) {
-            // Weekly 重复
             System.out.println("Check-in FAILED: Already done this week -> " + habitName);
             showAlert(Alert.AlertType.WARNING, "Weekly Limit Reached", "You have already completed this WEEKLY habit this week!");
         }
         else if (result == 3) {
-            // Monthly 重复
             System.out.println("Check-in FAILED: Already done this month -> " + habitName);
             showAlert(Alert.AlertType.WARNING, "Monthly Limit Reached", "You have already completed this MONTHLY habit this month!");
         }
         else {
-            // 数据库错误
             System.out.println("Check-in ERROR: Database issue.");
             showAlert(Alert.AlertType.ERROR, "Error", "Could not save check-in.");
         }
@@ -301,7 +293,6 @@ public class MainApp extends Application {
 
         Optional<LocalDate> result = dialog.showAndWait();
         result.ifPresent(date -> {
-            // 【修复点】：这里传入整个 habit 对象，而不是 habit.getId()
             int code = habitDao.checkIn(habit, date.toString());
             handleCheckInResult(code, habit.getName());
         });
@@ -372,7 +363,6 @@ public class MainApp extends Application {
                     else if (habit.getFrequency().equals("Monthly") && chance > 0.97) shouldCheckIn = true;
 
                     if (shouldCheckIn) {
-                        // 【修复点】：这里传入整个 habit 对象，而不是 habit.getId()
                         habitDao.checkIn(habit, today.minusDays(day).toString());
                     }
                 }

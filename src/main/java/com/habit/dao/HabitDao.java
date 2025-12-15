@@ -17,7 +17,7 @@ import java.time.temporal.TemporalAdjusters;
  */
 public class HabitDao {
 
-    // 1. CREATE
+    // CREATE
     public void addHabit(String name, String frequency) {
         String sql = "INSERT INTO habits(name, frequency) VALUES(?,?)";
         try (Connection conn = DatabaseHelper.connect();
@@ -31,7 +31,7 @@ public class HabitDao {
         }
     }
 
-    // 2. READ
+    // READ
     public List<Habit> getAllHabits() {
         List<Habit> habits = new ArrayList<>();
         String sql = "SELECT * FROM habits";
@@ -51,7 +51,7 @@ public class HabitDao {
         return habits;
     }
 
-    // 3. UPDATE
+    // UPDATE
     public void updateHabit(Habit habit) {
         String sql = "UPDATE habits SET name = ?, frequency = ? WHERE id = ?";
         try (Connection conn = DatabaseHelper.connect();
@@ -65,7 +65,7 @@ public class HabitDao {
         }
     }
 
-    // 4. DELETE SINGLE HABIT
+    // DELETE SINGLE HABIT
     public void deleteHabit(int habitId) {
         String deleteEntriesSql = "DELETE FROM habit_entries WHERE habit_id = ?";
         String deleteHabitSql = "DELETE FROM habits WHERE id = ?";
@@ -91,35 +91,24 @@ public class HabitDao {
         }
     }
 
-    // 5. CHECK-IN (升级版：支持 Daily/Weekly/Monthly 频率限制)
-    // 返回值含义：
-    // 0: 成功
-    // 1: 失败 - 今天已打卡 (Daily)
-    // 2: 失败 - 本周已打卡 (Weekly)
-    // 3: 失败 - 本月已打卡 (Monthly)
-    // -1: 数据库错误
     public int checkIn(Habit habit, String dateStr) {
         LocalDate date = LocalDate.parse(dateStr);
         String frequency = habit.getFrequency();
 
-        // --- 1. 检查频率限制 ---
         if ("Daily".equals(frequency)) {
             if (isCheckInExist(habit.getId(), date, date)) return 1;
         }
         else if ("Weekly".equals(frequency)) {
-            // 计算本周的周一和周日
             LocalDate startOfWeek = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
             LocalDate endOfWeek = date.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
             if (isCheckInExist(habit.getId(), startOfWeek, endOfWeek)) return 2;
         }
         else if ("Monthly".equals(frequency)) {
-            // 计算本月的第一天和最后一天
             LocalDate startOfMonth = date.with(TemporalAdjusters.firstDayOfMonth());
             LocalDate endOfMonth = date.with(TemporalAdjusters.lastDayOfMonth());
             if (isCheckInExist(habit.getId(), startOfMonth, endOfMonth)) return 3;
         }
 
-        // --- 2. 执行打卡 ---
         String sql = "INSERT INTO habit_entries(habit_id, check_date) VALUES(?,?)";
         try (Connection conn = DatabaseHelper.connect()) {
             conn.setAutoCommit(false);
@@ -128,17 +117,16 @@ public class HabitDao {
                 pstmt.setString(2, dateStr);
                 pstmt.executeUpdate();
                 conn.commit();
-                return 0; // 成功
+                return 0;
             } catch (SQLException e) {
                 conn.rollback();
             }
         } catch (SQLException e) {
             System.out.println("Check-in Error: " + e.getMessage());
         }
-        return -1; // 未知错误
+        return -1;
     }
 
-    // 通用辅助方法：检查某个时间段内是否打过卡
     private boolean isCheckInExist(int habitId, LocalDate startDate, LocalDate endDate) {
         String sql = "SELECT count(*) FROM habit_entries WHERE habit_id = ? AND check_date >= ? AND check_date <= ?";
         try (Connection conn = DatabaseHelper.connect();
@@ -154,7 +142,7 @@ public class HabitDao {
         return false;
     }
 
-    // 6. STATS
+    // STATS
     public Map<String, Integer> getHabitStats(int daysLookBack) {
         Map<String, Integer> stats = new HashMap<>();
         StringBuilder sql = new StringBuilder(
@@ -182,7 +170,7 @@ public class HabitDao {
         return stats;
     }
 
-    // 7. 【NEW】DELETE ALL DATA
+    // DELETE ALL DATA
     public void deleteAllData() {
         String sql1 = "DELETE FROM habit_entries";
         String sql2 = "DELETE FROM habits";
