@@ -68,7 +68,7 @@ The project follows a modular **MVC-like architecture**:
 
 #### Quick Evaluation Guide (For Grader)
 Once the application launches:
-1.  **Populate Data:** Click the **"Load Sample Data"** button at the top left. This will instantly generate 10 habits with mixed frequencies and 60 days of check-in history.
+1.  **Populate Data:** Click the **"Load Sample Data"** button at the top left. This will instantly generate 10 habits with mixed frequencies and 60 days of check-in history. You can also add a habit manually by input the habit name at the bar and choose habit type then add habit.
 2.  **View Analytics:** Click the **"Analytics & Charts"** tab to view the visualized data (Bar & Pie charts).
 3.  **Interact:**
     *   Select a habit and click **"Check In Today"**.

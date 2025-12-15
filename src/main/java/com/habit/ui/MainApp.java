@@ -18,6 +18,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.util.Callback;
 
 import java.time.LocalDate;
 import java.util.Map;
@@ -125,6 +126,7 @@ public class MainApp extends Application {
             }
         });
 
+        // Check-in Action Logic
         checkInButton.setOnAction(e -> {
             Habit selected = listView.getSelectionModel().getSelectedItem();
             if (selected != null) {
@@ -139,25 +141,31 @@ public class MainApp extends Application {
         return root;
     }
 
+    // Unified handling of check-in results (Alert + Backend Log)
     private void handleCheckInResult(int result, String habitName) {
         if (result == 0) {
+            // Success
             System.out.println("Check-in SUCCESS for: " + habitName);
             showAlert(Alert.AlertType.INFORMATION, "Success", "Good job! Check-in recorded.");
             loadData();
         }
         else if (result == 1) {
+            // Daily Duplicate
             System.out.println("Check-in FAILED: Already done today -> " + habitName);
             showAlert(Alert.AlertType.WARNING, "Already Checked In", "You have already completed '" + habitName + "' today!");
         }
         else if (result == 2) {
+            // Weekly Duplicate
             System.out.println("Check-in FAILED: Already done this week -> " + habitName);
             showAlert(Alert.AlertType.WARNING, "Weekly Limit Reached", "You have already completed this WEEKLY habit this week!");
         }
         else if (result == 3) {
+            // Monthly Duplicate
             System.out.println("Check-in FAILED: Already done this month -> " + habitName);
             showAlert(Alert.AlertType.WARNING, "Monthly Limit Reached", "You have already completed this MONTHLY habit this month!");
         }
         else {
+            // DB Error
             System.out.println("Check-in ERROR: Database issue.");
             showAlert(Alert.AlertType.ERROR, "Error", "Could not save check-in.");
         }
@@ -282,6 +290,19 @@ public class MainApp extends Application {
         dialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, ButtonType.CANCEL);
 
         DatePicker datePicker = new DatePicker(LocalDate.now().minusDays(1));
+
+        datePicker.setDayCellFactory(param -> new DateCell() {
+            @Override
+            public void updateItem(LocalDate date, boolean empty) {
+                super.updateItem(date, empty);
+                // Disable dates after today
+                if (date.isAfter(LocalDate.now())) {
+                    setDisable(true);
+                    setStyle("-fx-background-color: #f0f0f0;"); // Optional: grey out
+                }
+            }
+        });
+
         VBox content = new VBox(10, new Label("Select Date:"), datePicker);
         content.setPadding(new Insets(20));
         dialog.getDialogPane().setContent(content);
@@ -293,6 +314,12 @@ public class MainApp extends Application {
 
         Optional<LocalDate> result = dialog.showAndWait();
         result.ifPresent(date -> {
+            // Safety check: Prevent future check-in if user somehow bypasses UI
+            if (date.isAfter(LocalDate.now())) {
+                showAlert(Alert.AlertType.WARNING, "Invalid Date", "Cannot check-in for the future!");
+                return;
+            }
+            // Pass entire habit object for frequency validation
             int code = habitDao.checkIn(habit, date.toString());
             handleCheckInResult(code, habit.getName());
         });
@@ -363,6 +390,7 @@ public class MainApp extends Application {
                     else if (habit.getFrequency().equals("Monthly") && chance > 0.97) shouldCheckIn = true;
 
                     if (shouldCheckIn) {
+                        // Pass entire habit object
                         habitDao.checkIn(habit, today.minusDays(day).toString());
                     }
                 }
