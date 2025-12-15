@@ -1,5 +1,3 @@
----
-
 # Habit Tracker Pro
 
 ### 1. Project Overview
